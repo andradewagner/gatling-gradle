@@ -1,0 +1,41 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: perf-test
+  namespace: perf-test
+spec:
+  backoffLimit: 1
+  parallelism: 10
+  completions: 10
+  template:
+    metadata:
+      labels:
+        name: perf-test
+    spec:
+      containers:
+        - image: eu.gcr.io/[PROJECT_ID]/perf-test:latest
+          name: perf-test
+          args:
+            - gradle
+            - gatlingRun-performancetests.SearchSimulation
+            - uploadLogs
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2500Mi
+            requests:
+              cpu: 500m
+              memory: 2500Mi
+          envFrom:
+            - configMapRef:
+                name: perf-test-config
+      restartPolicy: Never
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: perf-test-config
+  namespace: perf-test
+data:
+  YOUR_ENV_VAR: value

@@ -9,7 +9,7 @@
 docker build -t wagnand/gatling:latest --label gatlingTest .
 
 ### - Use o comando para publicar a imagem no repositório
-docker push wagnand/gatling:gatling
+docker push wagnand/gatling:latest
 
 ### - Use o comando abaixo para executar o teste 
 docker run -it wagnand/gatling:latest gradle gatlingRun-SimulationPackage.Simulation

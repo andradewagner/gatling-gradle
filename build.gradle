@@ -3,18 +3,81 @@ plugins {
     id 'io.gatling.gradle' version "3.5.1"
 }
 
+apply plugin: 'scala'
+apply plugin: 'java'
+apply plugin: 'idea'
+
+def xms = System.getenv("JAVA_XMS_SIZE") ?: "512M"
+def xmx = System.getenv("JAVA_XMX_SIZE") ?: "512M"
+
+def hostName = System.getenv("HOSTNAME") ?: "localhost"
+def bucketName = System.getenv("RESULTS_BUCKET_NAME") ?: "nome-do-bucket"
+
 group 'org.example'
 version '1.0-SNAPSHOT'
 
 repositories {
+    jcenter()
     mavenCentral()
 }
 
 dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
+    gatling 'com.typesafe.play:play-json_2.12:2.6.9'
+    gatling 'com.google.cloud:google-cloud-storage:1.23.0'
+    gatling 'com.google.auth:google-auth-library-oauth2-http:0.9.0'
+    gatling 'org.zeroturnaround:zt-zip:1.12'
+    gatling 'com.fasterxml.jackson.module:jackson-module-scala_2.12:2.9.6'
+}
+
+gatling {
+    toolVersion = '3.5.1'
+    jvmArgs = ['-server', '-XX:+UseThreadPriorities',
+               '-XX:ThreadPriorityPolicy=42',
+               "-Xms${xms}", "-Xmx${xmx}", '-Xmn100M',
+               '-XX:+HeapDumpOnOutOfMemoryError',
+               '-XX:+AggressiveOpts',
+               '-XX:+OptimizeStringConcat',
+               '-XX:+UseFastAccessorMethods',
+               '-XX:+UseParNewGC',
+               '-XX:+UseConcMarkSweepGC',
+               '-XX:+CMSParallelRemarkEnabled',
+               '-Djava.net.preferIPv4Stack=true',
+               '-Djava.net.preferIPv6Addresses=false']
+    simulations = { include "**/*Simulation.scala" }
 }
 
 test {
     useJUnitPlatform()
+}
+
+task uploadLogs(type: JavaExec, dependsOn: compileGatlingScala) {
+    main = 'br.com.util.LogUploader'
+    classpath = sourceSets.gatling.runtimeClasspath
+}
+
+task downloadLogs(type: JavaExec, dependsOn: compileGatlingScala) {
+    main = 'br.com.util.LogDownloader'
+    classpath = sourceSets.gatling.runtimeClasspath
+}
+
+task buildReport(type: JavaExec, dependsOn: downloadLogs) {
+    main = 'io.gatling.app.Gatling'
+    classpath = sourceSets.gatling.runtimeClasspath
+    args = [
+            "-ro", "build/reports/downloadedLogs",
+            "-rf", ""
+    ]
+}
+
+task uploadReport(type: JavaExec, dependsOn: buildReport) {
+    main = 'br.com.util.ReportUploader'
+    classpath = sourceSets.gatling.runtimeClasspath
+}
+
+task deleteLogs(type: JavaExec, dependsOn: uploadReport) {
+    main = 'br.com.util.LogDeleter'
+    classpath = sourceSets.gatling.runtimeClasspath
 }
