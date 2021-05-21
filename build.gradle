@@ -1,11 +1,8 @@
 plugins {
     id 'java'
     id 'io.gatling.gradle' version "3.5.1"
+    id "org.zeroturnaround.gradle.jrebel" version "1.1.10"
 }
-
-apply plugin: 'scala'
-apply plugin: 'java'
-apply plugin: 'idea'
 
 def xms = System.getenv("JAVA_XMS_SIZE") ?: "512M"
 def xmx = System.getenv("JAVA_XMX_SIZE") ?: "512M"
@@ -13,7 +10,7 @@ def xmx = System.getenv("JAVA_XMX_SIZE") ?: "512M"
 def hostName = System.getenv("HOSTNAME") ?: "localhost"
 def bucketName = System.getenv("RESULTS_BUCKET_NAME") ?: "nome-do-bucket"
 
-group 'org.example'
+group 'br.com.gatling'
 version '1.0-SNAPSHOT'
 
 repositories {
@@ -24,16 +21,15 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 
-    implementation platform('com.amazonaws:aws-java-sdk-bom:1.11.X')
-    implementation 'com.amazonaws:aws-java-sdk-s3'
-    gatling 'com.typesafe.play:play-json_2.12:2.6.9'
-    gatling 'org.zeroturnaround:zt-zip:1.12'
-    gatling 'com.fasterxml.jackson.module:jackson-module-scala_2.12:2.9.6'
+    gatling platform(group: 'com.amazonaws', name: 'aws-java-sdk-bom', version: '1.11.1022')
+    gatling group: 'com.amazonaws', name: 'aws-java-sdk-s3', version: '1.11.1022'
+    gatling group: 'com.typesafe.play', name: 'play-json_2.13', version: '2.10.0-RC2'
+    gatling group: 'com.fasterxml.jackson.module', name: 'jackson-module-scala_2.9.1', version: '2.1.3'
+    gatling group: 'org.zeroturnaround', name: 'zt-zip', version: '1.12'
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
 gatling {
-    toolVersion = '3.5.1'
     jvmArgs = ['-server', '-XX:+UseThreadPriorities',
                '-XX:ThreadPriorityPolicy=42',
                "-Xms${xms}", "-Xmx${xmx}", '-Xmn100M',
