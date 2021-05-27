@@ -12,4 +12,4 @@ docker build -t wagnand/gatling:latest --label gatlingTest .
 docker push wagnand/gatling:latest
 
 ### - Use o comando abaixo para executar o teste 
-docker run -it wagnand/gatling:latest gradle gatlingRun-SimulationPackage.Simulation
+docker run -it wagnand/gatling:latest gradle gatlingRun-<SimulationPackage>.<Simulation>
