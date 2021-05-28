@@ -24,8 +24,8 @@ trait AWSStorageClient {
   val bucket: String = Properties.envOrElse("PERF_TEST_RESULTS_BUCKET_NAME", "testesamwagnand")
   val fileNameSuffix: String = Properties.envOrElse("HOSTNAME", RandomStringUtils.random(10, true, true))
   val downloadPath: String = Properties.envOrElse("PERF_TEST_LOG_DOWNLOAD_PATH", "build/reports/downloadedLogs")
-  val accessKey: String = Properties.envOrElse("ACCESS_KEY", "AKIA3POLZHN2LL3AW46Y")
-  val secretKey: String = Properties.envOrElse("SECRET_KEY", "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")
+  val accessKey: String = Properties.envOrElse("ACCESS_KEY", "")
+  val secretKey: String = Properties.envOrElse("SECRET_KEY", "")
   val clientRegion: Regions = Regions.DEFAULT_REGION
   var s3Object: S3Object = null
   val awsCreds: BasicAWSCredentials = new BasicAWSCredentials(accessKey, secretKey)
