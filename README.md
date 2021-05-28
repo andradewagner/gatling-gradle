@@ -13,8 +13,6 @@
   <p>Sufixo que será anexado ao nome do arquivo. Se nao for definido um sufixo aleatório será gerado</p><br/>
 - PERF_TEST_LOG_DOWNLOAD_PATH
   <p>Caminho onde os logs serao salvos ao efetuar o download do bucket S3. Se nenhum valor for informado, o caminho '<b>build/reports/downloadedLogs</b>' será utilizado</p><br/>
-- ACCESS_KEY
-  <p>A chave de acesso AWS</p><br/>
 ### - Use o comando abaixo pra gerar a imagem Docker
 docker build -t wagnand/gatling:latest --label gatlingTest .
 
