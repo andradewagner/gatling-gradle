@@ -14,30 +14,32 @@ import jodd.io.ZipUtil
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.RandomStringUtils
 
+import java.util
 import java.util.zip.ZipOutputStream
 import scala.util.Properties
 
 trait AWSStorageClient {
 
   val jwtPath: String = Properties.envOrElse("PERF_TEST_JWT_PATH", "key.json")
-  val bucket: String = Properties.envOrElse("PERF_TEST_RESULTS_BUCKET_NAME", "YOUR_BUCKET_NAME")
-  val fileNameSuffix: String = Properties.envOrElse("HOSTNAME", RandomStringUtils.random(10))
+  val bucket: String = Properties.envOrElse("PERF_TEST_RESULTS_BUCKET_NAME", "testesamwagnand")
+  val fileNameSuffix: String = Properties.envOrElse("HOSTNAME", RandomStringUtils.random(10, true, true))
   val downloadPath: String = Properties.envOrElse("PERF_TEST_LOG_DOWNLOAD_PATH", "build/reports/downloadedLogs")
+  val accessKey: String = Properties.envOrElse("ACCESS_KEY", "AKIA3POLZHN2LL3AW46Y")
+  val secretKey: String = Properties.envOrElse("SECRET_KEY", "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")
   val clientRegion: Regions = Regions.DEFAULT_REGION
   var s3Object: S3Object = null
-  val awsCreds: BasicAWSCredentials = new BasicAWSCredentials("ACCESS_KEY", "SECRET_KEY")
-  val jwtStream = new FileInputStream(new File(jwtPath))
+  val awsCreds: BasicAWSCredentials = new BasicAWSCredentials(accessKey, secretKey)
 
   val credentials: AWSStaticCredentialsProvider = try {
     new AWSStaticCredentialsProvider(awsCreds)
   } finally {
-    jwtStream.close()
+
   }
 
     val storageClient: AmazonS3 = AmazonS3ClientBuilder
       .standard()
       .withCredentials(credentials)
-      .withRegion(clientRegion)
+      .withRegion(Regions.US_EAST_1)
       .build()
 }
 
@@ -60,6 +62,8 @@ object LogUploader extends AWSStorageClient with fsUtils {
 
     val fileList = getListOfDirs("build/reports/gatling")
     val reportDir = fileList.head
+    println("Diretorio listado: " + reportDir)
+    println("Sufixo gerado: " + fileNameSuffix)
     try {
       val request: PutObjectRequest = new PutObjectRequest(bucket, s"simulation-$fileNameSuffix.log", new File(s"$reportDir/simulation.log"))
       val metadata: ObjectMetadata = new ObjectMetadata()
@@ -88,26 +92,21 @@ object LogDownloader extends AWSStorageClient with fsUtils {
     new File(downloadPath).mkdirs()
 
     try {
-      val listObjectReq: ListObjectsV2Request = new ListObjectsV2Request().withBucketName(bucket).withMaxKeys(2)
-      var listObjectResult: ListObjectsV2Result = new ListObjectsV2Result
-      var objectSummary: S3ObjectSummary = new S3ObjectSummary
+      val s3: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1).build()
+      val listObjectResult: ListObjectsV2Result = s3.listObjectsV2(bucket)
+      val objects: java.util.List[S3ObjectSummary] = listObjectResult.getObjectSummaries
 
-      do {
-        listObjectResult = storageClient.listObjectsV2(listObjectReq)
+      val it: util.Iterator[S3ObjectSummary] = objects.iterator()
 
-        listObjectResult.getObjectSummaries().forEach{ objctSummary=>
-          System.out.printf(" - %s (size: %d)|n", objectSummary.getKey, objctSummary.getSize)
-          if (objctSummary.getKey.endsWith(".log")) {
-            println("Baixando log " + objectSummary.getKey)
-            s3Object = storageClient.getObject(new GetObjectRequest(bucket, objectSummary.getKey))
-            ReportSaver.save(s3Object)
-          }
+      while(it.hasNext) {
+        var os: S3ObjectSummary = it.next()
+        if(os.getKey.endsWith(".log")) {
+          println("Baixando log " + os.getKey)
+          s3Object = storageClient.getObject(new GetObjectRequest(bucket, os.getKey))
+          ReportSaver.save(s3Object)
         }
-        val token: String = listObjectResult.getContinuationToken
-        System.out.println("Next Continuation Token: " + token)
-        listObjectReq.setContinuationToken(token)
+        System.out.printf(" - %s (size: %d)|n", os.getKey, os.getSize)
       }
-      while (listObjectResult.isTruncated)
     }
     catch {
       case ex: AmazonServiceException => {
